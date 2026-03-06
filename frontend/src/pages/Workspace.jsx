@@ -4,7 +4,9 @@ import io from 'socket.io-client';
 import Editor from '@monaco-editor/react'; // <-- THE MAGIC EDITOR
 
 //const socket = io("http://localhost:3000");
-const socket = io("https://rce-remote-code-execution.onrender.com");
+const socket = io("https://rce-remote-code-execution.onrender.com", {
+  transports: ["websocket"] // This forces a direct WebSocket, stopping the polling errors!
+});
 
 export default function Workspace({ questions }) {
   const { id } = useParams();
