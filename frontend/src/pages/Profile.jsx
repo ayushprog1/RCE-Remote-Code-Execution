@@ -18,7 +18,8 @@ export default function Profile() {
     const userObj = JSON.parse(storedUser);
 
     // 2. Fetch their shiny new profile data from the backend
-    fetch(`http://localhost:3000/api/users/${userObj.id}/profile`)
+    //fetch(`http://localhost:3000/api/users/${userObj.id}/profile`)
+    fetch(`https://rce-remote-code-execution.onrender.com/api/users/${userObj.id}/profile`)
       .then(res => res.json())
       .then(data => {
         setProfileData(data);

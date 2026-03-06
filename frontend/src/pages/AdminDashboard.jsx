@@ -21,7 +21,8 @@ export default function AdminDashboard() {
 
   // Fetch existing questions on load
   const fetchQuestions = () => {
-    fetch("http://localhost:3000/api/questions")
+    //fetch("http://localhost:3000/api/questions")
+    fetch("https://rce-remote-code-execution.onrender.com/api/questions")
       .then(res => res.json())
       .then(data => setQuestions(data))
       .catch(err => console.error(err));
@@ -52,7 +53,8 @@ export default function AdminDashboard() {
     const payload = { ...formData, testCases };
 
     try {
-      const response = await fetch("http://localhost:3000/api/admin/questions", {
+      // const response = await fetch("http://localhost:3000/api/admin/questions", {
+      const response = await fetch("https://rce-remote-code-execution.onrender.com/api/admin/questions", {  
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -79,7 +81,8 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to permanently delete this question?")) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/admin/questions/${questionId}`, {
+      //const response = await fetch(`http://localhost:3000/api/admin/questions/${questionId}`, {
+      const response = await fetch(`https://rce-remote-code-execution.onrender.com/api/admin/questions/${questionId}`,{
         method: "DELETE"
       });
       if (response.ok) {

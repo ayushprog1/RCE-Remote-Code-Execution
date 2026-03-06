@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import io from 'socket.io-client';
 import Editor from '@monaco-editor/react'; // <-- THE MAGIC EDITOR
 
-const socket = io("http://localhost:3000");
+//const socket = io("http://localhost:3000");
+const socket = io("https://rce-remote-code-execution.onrender.com");
 
 export default function Workspace({ questions }) {
   const { id } = useParams();
