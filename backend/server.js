@@ -17,14 +17,26 @@ const userRoutes = require('./routes/userRoutes');
 
 
 const app = express();
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+    origin: ["https://rce-theta.vercel.app", "http://localhost:5173", "http://localhost:3000"], // Added your Vercel URL!
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+}));
 app.use(express.json()); // Essential for reading POST data
 
 // Connect to MongoDB
 connectDB();
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+// const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, { 
+    cors: { 
+        origin: ["https://rce-theta.vercel.app", "http://localhost:5173", "http://localhost:3000"],
+        methods: ["GET", "POST"],
+        credentials: true
+    } 
+});
 
 const SOCKET_PATH = '/tmp/rce_engine.sock';
 const SUBMISSION_DIR = path.join(__dirname, 'submissions');
