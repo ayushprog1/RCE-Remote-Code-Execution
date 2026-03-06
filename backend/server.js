@@ -132,82 +132,94 @@ io.on('connection', (socket) => {
         socket.emit('execution_result', { status: "COMPLETED", output: customOutput, verdict: finalVerdict });
     });*/
     socket.on("submit_code", async (payload) => {
+        console.log(`[Engine] Received submission for Question ID: ${payload.questionId}`);
+        
         try {
-            // 1. Fetch the question from the database to get the expected output
+            // 1. Fetch the question
             const question = await Question.findOne({ questionId: payload.questionId });
             if (!question) {
+                console.log(`[Engine] Question not found!`);
                 return socket.emit('execution_result', { verdict: 'Error: Question not found', output: '' });
             }
 
-            // 2. Create unique file names (so if 2 users submit at once, they don't overwrite each other)
+            // 2. Create unique file names
             const uniqueId = Date.now();
             const cppFile = `temp_${uniqueId}.cpp`;
             const exeFile = `./a_${uniqueId}.out`;
             const inputFile = `input_${uniqueId}.txt`;
 
-            // 3. Write the user's C++ code and custom input to temporary files
+            // 3. Write files
             fs.writeFileSync(cppFile, payload.code);
             fs.writeFileSync(inputFile, payload.customInput || '');
 
-            // 4. The Terminal Commands to Compile and Run
             const compileCmd = `g++ ${cppFile} -o ${exeFile}`;
             const runCmd = `${exeFile} < ${inputFile}`;
 
-            // 5. Execute! (We add a 5-second timeout so infinite loops don't crash your server)
+            console.log(`[Engine] Compiling & Running Job: ${uniqueId}`);
+
+            // 4. Execute!
             exec(`${compileCmd} && ${runCmd}`, { timeout: 5000 }, async (error, stdout, stderr) => {
                 
-                // CLEANUP: Immediately delete the temporary files so your server doesn't get cluttered
+                // NEW: Wrap the inside of the callback in a try-catch to prevent silent failures!
                 try {
+                    // CLEANUP
                     if (fs.existsSync(cppFile)) fs.unlinkSync(cppFile);
                     if (fs.existsSync(exeFile)) fs.unlinkSync(exeFile);
                     if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile);
-                } catch (cleanupErr) { console.error("Cleanup error:", cleanupErr); }
 
-                let finalVerdict = "Wrong Answer";
-                let customOutput = stdout ? stdout.trim() : "";
+                    let finalVerdict = "Wrong Answer";
+                    let customOutput = stdout ? stdout.trim() : "";
 
-                // 6. Grade the Output
-                if (error) {
-                    if (error.killed) {
-                        finalVerdict = "Time Limit Exceeded";
-                        customOutput = "Your code took too long to execute. Infinite loop?";
+                    // 5. Grade the Output
+                    if (error) {
+                        if (error.killed) {
+                            finalVerdict = "Time Limit Exceeded";
+                            customOutput = "Your code took too long to execute. Infinite loop?";
+                        } else {
+                            finalVerdict = "Compilation Error";
+                            customOutput = stderr || error.message;
+                        }
                     } else {
-                        finalVerdict = "Compilation Error";
-                        customOutput = stderr || error.message;
-                    }
-                } else {
-                    // It ran successfully! Let's check if the output matches the expected output
-                    if (customOutput === question.sampleExpectedOutput.trim()) {
-                        finalVerdict = "Accepted";
+                        // SAFELY check expected output (prevents .trim() crashes)
+                        const expectedOutput = question.sampleExpectedOutput ? question.sampleExpectedOutput.trim() : "";
                         
-                        // Increment successful submissions in Question DB
-                        await Question.findOneAndUpdate(
-                            { questionId: payload.questionId },
-                            { $inc: { successfulSubmissions: 1 } } 
-                        );
-
-                        // Record the win for the User DB
-                        if (payload.userId) {
-                            const User = require('./models/User');
-                            await User.findByIdAndUpdate(
-                                payload.userId,
-                                { $addToSet: { solvedQuestions: payload.questionId } }
+                        if (customOutput === expectedOutput) {
+                            finalVerdict = "Accepted";
+                            console.log(`[Engine] Job ${uniqueId} ACCEPTED!`);
+                            
+                            await Question.findOneAndUpdate(
+                                { questionId: payload.questionId },
+                                { $inc: { successfulSubmissions: 1 } } 
                             );
+
+                            if (payload.userId) {
+                                const User = require('./models/User');
+                                await User.findByIdAndUpdate(
+                                    payload.userId,
+                                    { $addToSet: { solvedQuestions: payload.questionId } }
+                                );
+                            }
+                        } else {
+                            console.log(`[Engine] Job ${uniqueId} WRONG ANSWER. Got: "${customOutput}", Expected: "${expectedOutput}"`);
                         }
                     }
-                }
 
-                // 7. Send the final grade back to the React frontend!
-                socket.emit('execution_result', { 
-                    status: "COMPLETED", 
-                    output: customOutput, 
-                    verdict: finalVerdict, 
-                    questionId: payload.questionId 
-                });
+                    // 6. Send result
+                    socket.emit('execution_result', { 
+                        status: "COMPLETED", 
+                        output: customOutput, 
+                        verdict: finalVerdict, 
+                        questionId: payload.questionId 
+                    });
+
+                } catch (innerErr) {
+                    console.error("[Engine] Critical internal callback error:", innerErr);
+                    socket.emit('execution_result', { verdict: 'Server Error', output: 'Failed during grading process.' });
+                }
             });
 
         } catch (err) {
-            console.error("Execution error:", err);
+            console.error("[Engine] Outer execution error:", err);
             socket.emit('execution_result', { verdict: 'Server Error', output: 'An internal error occurred.' });
         }
     });
