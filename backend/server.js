@@ -19,7 +19,11 @@ const userRoutes = require('./routes/userRoutes');
 const app = express();
 // app.use(cors());
 app.use(cors({
-    origin: ["https://rce-theta.vercel.app", "http://localhost:5173", "http://localhost:3000"], // Added your Vercel URL!
+    origin: [
+        "https://rce-theta.vercel.app", 
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
@@ -32,7 +36,11 @@ const server = http.createServer(app);
 // const io = new Server(server, { cors: { origin: "*" } });
 const io = new Server(server, { 
     cors: { 
-        origin: ["https://rce-theta.vercel.app", "http://localhost:5173", "http://localhost:3000" , "http://127.0.0.1:5173"],
+        origin: [
+            "https://rce-theta.vercel.app", 
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173"
+        ],
         methods: ["GET", "POST"],
         credentials: true
     } 
