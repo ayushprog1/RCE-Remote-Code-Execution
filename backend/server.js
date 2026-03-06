@@ -32,7 +32,7 @@ const server = http.createServer(app);
 // const io = new Server(server, { cors: { origin: "*" } });
 const io = new Server(server, { 
     cors: { 
-        origin: ["https://rce-theta.vercel.app", "http://localhost:5173", "http://localhost:3000"],
+        origin: ["https://rce-theta.vercel.app", "http://localhost:5173", "http://localhost:3000" , "http://127.0.0.1:5173"],
         methods: ["GET", "POST"],
         credentials: true
     } 
@@ -49,12 +49,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
 // --- WEBSOCKET GRADING ENGINE ---
+// --- WEBSOCKET GRADING ENGINE ---
 io.on('connection', (socket) => {
     console.log(`[Socket.io] User connected: ${socket.id}`);
 
-    /*socket.on('submit_code', async (payload) => {
+    socket.on('submit_code', async (payload) => {
         const question = await Question.findOne({ questionId: payload.questionId });
-        if (!question) return;
+        if (!question) return socket.emit('execution_result', { verdict: 'Error: Question not found' });
+
+        // Ensure the submissions directory exists!
+        if (!fs.existsSync(SUBMISSION_DIR)){
+            fs.mkdirSync(SUBMISSION_DIR);
+        }
 
         const filePath = path.join(SUBMISSION_DIR, 'solution.cpp');
         fs.writeFileSync(filePath, payload.code);
@@ -79,7 +85,8 @@ io.on('connection', (socket) => {
                 customOutput = outputSplit.length > 1 ? outputSplit[1].trim() : "No Output.";
             }
         } catch (err) {
-            customOutput = "Daemon connection failed.";
+            console.error("Daemon connection failed. Is final_engine running?");
+            customOutput = "Engine Offline.";
             compileError = true;
         }
 
@@ -102,7 +109,10 @@ io.on('connection', (socket) => {
                     const outputSplit = rawResponse.split("OUTPUT:\n");
                     const actualOutput = outputSplit.length > 1 ? outputSplit[1].trim() : "";
                     
-                    if (actualOutput !== tc.expectedOutput.trim()) {
+                    // SAFELY check expected output
+                    const expectedOutput = tc.expectedOutput ? tc.expectedOutput.trim() : "";
+
+                    if (actualOutput !== expectedOutput) {
                         allPassed = false;
                         break; 
                     }
@@ -121,107 +131,15 @@ io.on('connection', (socket) => {
                 { $inc: { successfulSubmissions: 1 } } 
             );
             if (payload.userId) {
-                const User = require('./models/User'); // Grab the User model
+                const User = require('./models/User'); 
                 await User.findByIdAndUpdate(
                     payload.userId,
-                    { $addToSet: { solvedQuestions: payload.questionId } } // $addToSet prevents duplicates!
+                    { $addToSet: { solvedQuestions: payload.questionId } } 
                 );
             }
         }
 
         socket.emit('execution_result', { status: "COMPLETED", output: customOutput, verdict: finalVerdict });
-    });*/
-    socket.on("submit_code", async (payload) => {
-        console.log(`[Engine] Received submission for Question ID: ${payload.questionId}`);
-        
-        try {
-            // 1. Fetch the question
-            const question = await Question.findOne({ questionId: payload.questionId });
-            if (!question) {
-                console.log(`[Engine] Question not found!`);
-                return socket.emit('execution_result', { verdict: 'Error: Question not found', output: '' });
-            }
-
-            // 2. Create unique file names
-            const uniqueId = Date.now();
-            const cppFile = `temp_${uniqueId}.cpp`;
-            const exeFile = `./a_${uniqueId}.out`;
-            const inputFile = `input_${uniqueId}.txt`;
-
-            // 3. Write files
-            fs.writeFileSync(cppFile, payload.code);
-            fs.writeFileSync(inputFile, payload.customInput || '');
-
-            const compileCmd = `g++ ${cppFile} -o ${exeFile}`;
-            const runCmd = `${exeFile} < ${inputFile}`;
-
-            console.log(`[Engine] Compiling & Running Job: ${uniqueId}`);
-
-            // 4. Execute!
-            exec(`${compileCmd} && ${runCmd}`, { timeout: 5000 }, async (error, stdout, stderr) => {
-                
-                // NEW: Wrap the inside of the callback in a try-catch to prevent silent failures!
-                try {
-                    // CLEANUP
-                    if (fs.existsSync(cppFile)) fs.unlinkSync(cppFile);
-                    if (fs.existsSync(exeFile)) fs.unlinkSync(exeFile);
-                    if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile);
-
-                    let finalVerdict = "Wrong Answer";
-                    let customOutput = stdout ? stdout.trim() : "";
-
-                    // 5. Grade the Output
-                    if (error) {
-                        if (error.killed) {
-                            finalVerdict = "Time Limit Exceeded";
-                            customOutput = "Your code took too long to execute. Infinite loop?";
-                        } else {
-                            finalVerdict = "Compilation Error";
-                            customOutput = stderr || error.message;
-                        }
-                    } else {
-                        // SAFELY check expected output (prevents .trim() crashes)
-                        const expectedOutput = question.sampleExpectedOutput ? question.sampleExpectedOutput.trim() : "";
-                        
-                        if (customOutput === expectedOutput) {
-                            finalVerdict = "Accepted";
-                            console.log(`[Engine] Job ${uniqueId} ACCEPTED!`);
-                            
-                            await Question.findOneAndUpdate(
-                                { questionId: payload.questionId },
-                                { $inc: { successfulSubmissions: 1 } } 
-                            );
-
-                            if (payload.userId) {
-                                const User = require('./models/User');
-                                await User.findByIdAndUpdate(
-                                    payload.userId,
-                                    { $addToSet: { solvedQuestions: payload.questionId } }
-                                );
-                            }
-                        } else {
-                            console.log(`[Engine] Job ${uniqueId} WRONG ANSWER. Got: "${customOutput}", Expected: "${expectedOutput}"`);
-                        }
-                    }
-
-                    // 6. Send result
-                    socket.emit('execution_result', { 
-                        status: "COMPLETED", 
-                        output: customOutput, 
-                        verdict: finalVerdict, 
-                        questionId: payload.questionId 
-                    });
-
-                } catch (innerErr) {
-                    console.error("[Engine] Critical internal callback error:", innerErr);
-                    socket.emit('execution_result', { verdict: 'Server Error', output: 'Failed during grading process.' });
-                }
-            });
-
-        } catch (err) {
-            console.error("[Engine] Outer execution error:", err);
-            socket.emit('execution_result', { verdict: 'Server Error', output: 'An internal error occurred.' });
-        }
     });
 });
 

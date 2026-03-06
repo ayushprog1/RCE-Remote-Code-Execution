@@ -14,7 +14,9 @@ function App() {
   // Fetch the questions from MongoDB once when the app loads
   useEffect(() => {
     //fetch("http://localhost:3000/api/questions")
-    fetch("https://rce-remote-code-execution.onrender.com/api/questions")
+    // fetch("https://rce-remote-code-execution.onrender.com/api/questions")
+    fetch("http://65.2.38.13:3000/api/questions")
+
       .then(res => res.json())
       .then(data => setQuestions(data))
       .catch(err => console.error("API Error:", err));

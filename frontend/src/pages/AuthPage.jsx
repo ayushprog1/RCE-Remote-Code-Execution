@@ -29,7 +29,8 @@ export default function AuthPage() {
 
     try {
       // const response = await fetch(`http://localhost:3000${endpoint}`, {
-      const response = await fetch(`https://rce-remote-code-execution.onrender.com${endpoint}`,{  
+      // const response = await fetch(`https://rce-remote-code-execution.onrender.com${endpoint}`,{ 
+      const response = await fetch(`http://65.2.38.13:3000${endpoint}`,{ 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
