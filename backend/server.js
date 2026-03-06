@@ -213,5 +213,6 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = 3000;
-server.listen(PORT, () => console.log(`[Node.js] API Gateway listening on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`[Node.js] API Gateway listening on port ${PORT}`));
+// server.listen(PORT, () => console.log(`[Node.js] API Gateway listening on http://localhost:${PORT}`));
