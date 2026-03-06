@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCE Engine - Frontend Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: #fff; padding: 50px; }
+        button { padding: 15px 30px; font-size: 18px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #output-box { margin-top: 20px; background: #000; padding: 20px; font-family: monospace; border: 1px solid #333; min-height: 100px; white-space: pre-wrap;}
+    </style>
+</head>
+<body>
+
+    <h1>Code Execution Environment</h1>
+    <p>Click the button below to send a payload to the Node.js API Gateway.</p>
+    
+    <button id="submitBtn">Submit C++ Code</button>
+
+    <div id="output-box">Waiting for execution results...</div>
+
+    <script>
+        // 1. Connect to our local Node.js server
+        const socket = io("http://localhost:3000");
+        const outputBox = document.getElementById("output-box");
+
+        // 2. Confirm connection
+        socket.on("connect", () => {
+            console.log("Connected to Node.js Server!");
+            outputBox.innerText = "Connected to Server. Ready to submit.";
+        });
+
+        // 3. When the button is clicked, send the payload
+        document.getElementById("submitBtn").addEventListener("click", () => {
+            outputBox.innerText = "Executing in the cloud...";
+            
+            // The payload we are sending to Node.js
+            const payload = {
+                language: "cpp",
+                code: "#include <iostream>\nint main() {\n  std::cout << \"Hello from C++!\" << std::endl;\n  return 0;\n}"
+            };
+
+            // Send it over the open phone line!
+            socket.emit("submit_code", payload);
+        });
+
+        // 4. Listen for the result coming BACK from the server
+        socket.on("execution_result", (data) => {
+            console.log("Received data:", data);
+            
+            // If the server threw an error before even reaching C++
+            if (data.status === "ERROR") {
+                outputBox.innerText = `CRITICAL ERROR:\n${data.raw_output}`;
+                return;
+            }
+
+            // Otherwise, print the raw output straight from the C++ Vault Guard!
+            outputBox.innerText = data.raw_output;
+        });
+    </script>
+</body>
+</html>
