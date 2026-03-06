@@ -20,7 +20,8 @@ export default function Profile() {
     // 2. Fetch their shiny new profile data from the backend
     //fetch(`http://localhost:3000/api/users/${userObj.id}/profile`)
     // fetch(`https://rce-remote-code-execution.onrender.com/api/users/${userObj.id}/profile`)
-    fetch(`http://65.2.38.13:3000/api/users/${userObj.id}/profile`)
+    // fetch(`http://65.2.38.13:3000/api/users/${userObj.id}/profile`)
+    fetch(`https://rce-backend.ddns.net/api/users/${userObj.id}/profile`)
       .then(res => res.json())
       .then(data => {
         setProfileData(data);

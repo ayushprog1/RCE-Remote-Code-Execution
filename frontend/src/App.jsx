@@ -15,7 +15,8 @@ function App() {
   useEffect(() => {
     //fetch("http://localhost:3000/api/questions")
     // fetch("https://rce-remote-code-execution.onrender.com/api/questions")
-    fetch("http://65.2.38.13:3000/api/questions")
+    // fetch("http://65.2.38.13:3000/api/questions")
+    fetch("https://rce-backend.ddns.net/api/questions")
 
       .then(res => res.json())
       .then(data => setQuestions(data))

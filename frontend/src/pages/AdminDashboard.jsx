@@ -23,7 +23,8 @@ export default function AdminDashboard() {
   const fetchQuestions = () => {
     //fetch("http://localhost:3000/api/questions")
     // fetch("https://rce-remote-code-execution.onrender.com/api/questions")
-    fetch("http://65.2.38.13:3000/api/questions")
+    // fetch("http://65.2.38.13:3000/api/questions")
+    fetch("https://rce-backend.ddns.net/api/questions")
       .then(res => res.json())
       .then(data => setQuestions(data))
       .catch(err => console.error(err));
@@ -56,7 +57,8 @@ export default function AdminDashboard() {
     try {
       // const response = await fetch("http://localhost:3000/api/admin/questions", {
       // const response = await fetch("https://rce-remote-code-execution.onrender.com/api/admin/questions", {
-      const response = await fetch("http://65.2.38.13:3000/api/admin/questions", {  
+      // const response = await fetch("http://65.2.38.13:3000/api/admin/questions", {
+      const response = await fetch("https://rce-backend.ddns.net/api/admin/questions",{  
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -85,7 +87,8 @@ export default function AdminDashboard() {
     try {
       //const response = await fetch(`http://localhost:3000/api/admin/questions/${questionId}`, {
       // const response = await fetch(`https://rce-remote-code-execution.onrender.com/api/admin/questions/${questionId}`,{
-      const response = await fetch(`http://65.2.38.13:3000/api/admin/questions/${questionId}`, {
+      // const response = await fetch(`http://65.2.38.13:3000/api/admin/questions/${questionId}`, {
+      const response = await fetch(`https://rce-backend.ddns.net/api/admin/questions/${questionId}`,{
         method: "DELETE"
       });
       if (response.ok) {
