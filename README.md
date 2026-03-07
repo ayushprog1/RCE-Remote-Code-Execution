@@ -38,3 +38,58 @@ To run this platform locally on your machine, you will need **Node.js**, a **C++
 ```bash
 git clone [https://github.com/yourusername/RCE-Remote-Code-Execution.git](https://github.com/yourusername/RCE-Remote-Code-Execution.git)
 cd RCE-Remote-Code-Execution
+
+2. Set up the Environment Variables
+Inside the backend folder, create a .env file and add your MongoDB connection string:
+
+Code snippet
+PORT=3000
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/rce_platform
+3. Start the Node.js API Gateway
+Open a terminal in the backend folder:
+
+Bash
+cd backend
+npm install
+node seed.js    # Injects the coding problems into your database
+npm run start
+4. Start the C++ Execution Daemon
+Open a second terminal in the engine folder. You must compile the daemon and run it (requires libcurl and nlohmann/json installed on your system):
+
+Bash
+cd engine
+g++ final_engine.cpp -o rce_daemon -lcurl
+sudo ./rce_daemon
+(Note: sudo is required because the daemon needs permission to orchestrate Docker containers).
+
+5. Start the React Frontend
+Open a third terminal in the frontend folder:
+
+Bash
+cd frontend
+npm install
+npm run dev
+Visit http://localhost:5173 in your browser!
+
+🚀 Production Deployment (AWS / Linux)
+In a live production environment, both backend microservices should be managed by a process manager like PM2 to keep them running continuously.
+
+Starting the cluster:
+
+Bash
+# 1. Start the API Gateway
+cd backend
+sudo pm2 start server.js --name "api-gateway"
+
+# 2. Start the Docker Execution Daemon
+cd ../engine
+sudo pm2 start ./rce_daemon --name "cpp-engine"
+
+# 3. Save the process list to reboot automatically if the server restarts
+sudo pm2 save
+
+
+
+Once you paste that in and push it to GitHub, it will automatically render with beautiful bold headers, bullet points, and code-formatting blocks. 
+
+Would you like me to help you draft a quick LinkedIn post to announce your new live p
